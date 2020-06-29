@@ -10,6 +10,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.File;
+import java.io.FileWriter;
 import java.util.Arrays;
 
 import javax.swing.BorderFactory;
@@ -30,6 +32,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.RowFilter;
 import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
@@ -44,7 +47,11 @@ public class Customer_App {
 	private JTextField phone;
 	private JTextField birthday;
 	private JTextField search;
-
+	private static String[][] csvDatas;
+	private static String[][] sqlDatas;
+	private static DefaultTableModel tm;
+	private static JTable table;
+	
 	/**
 	 * Launch the application.
 	 */
@@ -73,6 +80,7 @@ public class Customer_App {
 	 */
 	private void initialize() {
 
+		TableData td = new TableData();
 		Customer customer = new Customer();
 
 		// 파일 체크
@@ -87,9 +95,18 @@ public class Customer_App {
 		frame.setSize(welcomePanel.getWidth(), welcomePanel.getHeight());
 		frame.getContentPane().setLayout(null);
 //		String[][] data = new String[][] {{"1","2","3"},{"4","5","6"}};
-		String[][] data = customer.getCustomers2();
-		String[] headers = new String[] { "Name", "Phone", "Gender", "Age", "Note" };
-
+		// sql
+//		String[] headers = new String[] { "Name", "Phone", "Gender", "Age", "Note" };
+//		String[][] data = customer.getCustomers2();
+		// csv
+		String[] headers = td.getHeaders();
+		csvDatas = td.getCustomers();
+		tm = new DefaultTableModel(csvDatas, headers);
+		sqlDatas = customer.getCustomers2();
+		for (String[] sqlData : sqlDatas) {
+			tm.addRow(sqlData);
+		}
+		
 		ImagePanel tablePanel = new ImagePanel(
 				new ImageIcon("D:/git/Java_Swing_Study/Swing_Practice/image/List.png").getImage());
 		tablePanel.setBounds(0, 0, 1018, 626);
@@ -117,7 +134,7 @@ public class Customer_App {
 		tablePanel.add(btnNewButton_2);
 
 		tablePanel.setLayout(null);
-		JTable table = new JTable(data, headers);
+		table = new JTable(tm);
 		table.setRowHeight(30);
 		table.setFont(new Font("Sanserif", Font.BOLD, 15));
 		table.setAlignmentX(0); // 자동 정렬
@@ -144,8 +161,6 @@ public class Customer_App {
 		});
 
 		TableColumnModel columnModels = table.getColumnModel();
-
-
 
 		JLabel lblNewLabel = new JLabel("Welcome This is Main Panel");
 		lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -231,10 +246,38 @@ public class Customer_App {
 				String noteTxt = note.getText();
 				// Customer 클래스에 데이터를 저장하면 됨
 
-				customer.createCustomer(nameTxt, phoneTxt, genderTxt, ageTxt, noteTxt);
+				// sql 연결해서 처리
+//				customer.createCustomer(nameTxt, phoneTxt, genderTxt, ageTxt, noteTxt);
+				
+				// csv 파일 ,로 구분
+				try {
+					boolean fileExists = new File("./data.csv").exists();
+					FileWriter fw = new FileWriter("./data.csv", true); // 뒤에 다시 열때 이미 있으면 지우지 않고 하는거
+					if(!fileExists) {
+						fw.append("Name,Age,Phone,Gender,Note\r\n");
+					}
+					fw.append(nameTxt+","+ageTxt+","+phoneTxt+","+genderTxt+","+noteTxt+"\r\n");
+					fw.close();
+					td.refresh();
+					
+					csvDatas = td.getCustomers();
+					sqlDatas = customer.getCustomers2();
+					tm = new DefaultTableModel(csvDatas, headers);
+					for (String[] sqlData : sqlDatas) {
+						tm.addRow(sqlData);
+					}
+					
+					table.setModel(tm);
+					
+					JOptionPane.showMessageDialog(null, "Data Saved Successfully");
+				} catch (Exception e2) {
+					JOptionPane.showMessageDialog(null, "There was an error while writing the data.");
+				}
+				
 				// JOptionPane.showMessageDialog(null, "Your data has been saved
 				// successfully.");
 				mainPanel.setVisible(false);
+				tablePanel.setVisible(true);
 			}
 		});
 		btnNewButton.setBounds(456, 461, 158, 60);
